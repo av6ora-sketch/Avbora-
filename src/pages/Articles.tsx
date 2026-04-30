@@ -1,0 +1,189 @@
+import React, { useState, useEffect } from 'react';
+import { PenTool, Search, Calendar, Globe2, FileText, CheckCircle, Edit, Trash2, Clock, Upload, Loader2, ArrowRight, ExternalLink } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Link, useNavigate } from 'react-router-dom';
+import { db, auth } from '../firebase';
+import { collection, query, where, getDocs, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '../lib/firestoreErrors';
+
+interface Article {
+  id: string;
+  title: string;
+  content: string;
+  blogId: string;
+  blogName: string;
+  status: 'published' | 'draft';
+  bloggerUrl?: string;
+  createdAt: any;
+  seoScore?: number;
+}
+
+import { useLanguage } from '../contexts/LanguageContext';
+
+export default function Articles() {
+  const { user, profile } = useAuth();
+  const { isAR } = useLanguage();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'all' | 'published' | 'draft'>('all');
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const t = {
+    title: isAR ? 'المقالات' : 'Articles',
+    desc: isAR ? 'إدارة وتحرير وتوليد ونشر محتوى مدونتك تلقائياً.' : 'Manage, edit, generate, and auto-publish your blog content.',
+    goGenerator: isAR ? 'الذهاب للمولد' : 'Go to Generator',
+    all: isAR ? 'الكل' : 'all',
+    published: isAR ? 'منشورة' : 'published',
+    draft: isAR ? 'مسودة' : 'draft',
+    articleTitle: isAR ? 'عنوان المقال' : 'Article Title',
+    status: isAR ? 'الحالة' : 'Status',
+    blog: isAR ? 'المدونة' : 'Blog',
+    date: isAR ? 'التاريخ' : 'Date',
+    actions: isAR ? 'الإجراءات' : 'Actions',
+    aiGenerated: isAR ? 'محتوى مولد بالـ AI' : 'AI-Generated Content',
+    viewOnBlog: isAR ? 'عرض على المدونة' : 'View on Blog',
+    removeRecord: isAR ? 'حذف السجل' : 'Remove Record',
+    noArticles: isAR ? 'لم يتم العثور على مقالات في هذا القسم.' : 'No articles found in this category.',
+    confirmDelete: isAR ? 'هل أنت متأكد من حذف هذا السجل؟' : 'Are you sure you want to delete this article record?',
+  };
+
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(
+      collection(db, 'articles'), 
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched: Article[] = [];
+      snapshot.forEach(doc => {
+        fetched.push({ id: doc.id, ...doc.data() } as Article);
+      });
+      setArticles(fetched);
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'articles');
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm(t.confirmDelete)) return;
+    try {
+      await deleteDoc(doc(db, 'articles', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `articles/${id}`);
+    }
+  };
+
+  const filtered = activeTab === 'all' 
+    ? articles 
+    : articles.filter(a => a.status === activeTab);
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8 w-full">
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">{t.title}</h1>
+          <p className="text-gray-400">{t.desc}</p>
+        </div>
+        <button 
+          onClick={() => navigate('/blog-settings')}
+          className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition shadow-lg shadow-blue-500/20"
+        >
+          <PenTool className="w-4 h-4" /> {t.goGenerator}
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide">
+        {['all', 'published', 'draft'].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab as any)}
+            className={`px-5 py-2.5 rounded-full text-sm font-bold capitalize whitespace-nowrap transition-all ${
+              activeTab === tab 
+                ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]' 
+                : 'bg-gray-900 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700'
+            }`}
+          >
+            {t[tab as keyof typeof t]}
+          </button>
+        ))}
+      </div>
+
+      {/* Articles List */}
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-950/50 border-b border-gray-800 text-xs uppercase tracking-widest text-gray-500">
+                <th className="p-5 font-bold text-start">{t.articleTitle}</th>
+                <th className="p-5 font-bold text-start">{t.status}</th>
+                <th className="p-5 font-bold text-start">{t.blog}</th>
+                <th className="p-5 font-bold text-start">{t.date}</th>
+                <th className="p-5 font-bold text-end">{t.actions}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="p-20 text-center">
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
+                  </td>
+                </tr>
+              ) : filtered.map(article => (
+                <tr key={article.id} className="hover:bg-gray-800/30 transition">
+                  <td className="p-5">
+                    <div className="font-bold text-white">{article.title}</div>
+                    <div className="text-xs text-gray-500 mt-1 line-clamp-1">{t.aiGenerated}</div>
+                  </td>
+                  <td className="p-5">
+                    {article.status === 'published' && (
+                      <span className="bg-emerald-900/30 border border-emerald-900/50 text-emerald-400 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide">{isAR ? 'تم النشر' : 'Published'}</span>
+                    )}
+                    {article.status === 'draft' && (
+                      <span className="bg-gray-800 border border-gray-700 text-gray-300 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide">{isAR ? 'مسودة' : 'Draft'}</span>
+                    )}
+                  </td>
+                  <td className="p-5">
+                    <div className="text-sm text-gray-300">{article.blogName}</div>
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">ID: {article.blogId}</div>
+                  </td>
+                  <td className="p-5 text-sm text-gray-400">
+                    {article.createdAt?.toDate().toLocaleDateString() || 'Just now'}
+                  </td>
+                  <td className="p-5">
+                    <div className="flex gap-2 justify-end">
+                      {article.bloggerUrl && (
+                        <a href={article.bloggerUrl} target="_blank" rel="noreferrer" className="p-2 bg-gray-800 hover:bg-emerald-600 text-gray-300 hover:text-white rounded-lg transition" title={t.viewOnBlog}>
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                      <button 
+                        onClick={() => handleDelete(article.id)}
+                        className="p-2 bg-red-900/20 hover:bg-red-600 text-red-500 hover:text-white rounded-lg transition" 
+                        title={t.removeRecord}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filtered.length === 0 && (
+            <div className="p-12 text-center text-gray-500">
+              {t.noArticles}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

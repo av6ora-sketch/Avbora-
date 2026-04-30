@@ -1,0 +1,165 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} { 
+      allow read, write: if false; 
+    }
+
+    // Primitives
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        ('email' in request.auth.token && (
+          request.auth.token.email == 'av6ora@gmail.com' || 
+          request.auth.token.email == 'contact@avbora.online'
+        )) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['name', 'email']) &&
+               data.name is string && data.name.size() <= 100 &&
+               data.email is string && data.email.size() <= 150 &&
+               (data.get('phone', '') is string) &&
+               (data.get('country', '') is string) &&
+               (data.get('age', 0) is number) &&
+               (data.get('skills', []) is list && data.get('skills', []).size() <= 50) &&
+               (data.get('level', '') is string) &&
+               (data.get('subscriptionPlan', 'Free') is string) &&
+               (data.get('role', 'user') is string);
+      }
+
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if (isOwner(userId) && isValidId(userId) && isValidUser(incoming())) || isAdmin();
+      allow delete: if isAdmin();
+      
+      allow update: if (isOwner(userId) && isValidId(userId) && (
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'email', 'phone', 'country', 'age', 'skills', 'level', 'subscriptionPlan', 'role', 'balance', 'createdAt', 'updatedAt'
+        ]) &&
+        incoming().get('name', '') is string &&
+        incoming().get('phone', '') is string &&
+        incoming().get('country', '') is string &&
+        incoming().get('age', 0) is number &&
+        incoming().get('skills', []) is list && incoming().get('skills', []).size() <= 50 &&
+        incoming().get('level', '') is string
+      )) || isAdmin();
+    }
+
+    match /projects/{projectId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /jobs/{jobId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /scholarships/{scholarshipId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /marketplace/{itemId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (
+        isSignedIn() && 
+        (
+          // Bidding action
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['currentBid', 'highestBidderId', 'highestBidderName']) &&
+            incoming().currentBid > existing().get('currentBid', existing().startingPrice) &&
+            existing().status == 'approved'
+          ) ||
+          // Seller closing the deal
+          (
+            existing().sellerId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+          )
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['likes', 'comments', 'sharesCount'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /support/{ticketId} {
+      allow read: if (isSignedIn() && existing().userId == request.auth.uid) || isAdmin();
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isAdmin() || (
+        isSignedIn() && 
+        existing().userId == request.auth.uid && 
+        existing().status != 'closed' && 
+        incoming().diff(existing()).affectedKeys().hasOnly(['messages', 'updatedAt', 'status']) &&
+        (incoming().get('status', existing().status) == existing().status || incoming().status == 'open')
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /microtasks/{taskId} {
+      allow read: if isSignedIn();
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        (incoming().diff(existing()).affectedKeys().hasOnly(['currentVisits']))
+      );
+      allow create, delete: if isAdmin();
+    }
+
+    match /task_submissions/{submissionId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && (
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'pending'
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    match /task_progress/{progressId} {
+      allow read: if isSignedIn() && (isAdmin() || resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && incoming().visits == 1;
+      allow update: if isSignedIn() && incoming().userId == request.auth.uid && incoming().visits == existing().visits + 1;
+      allow delete: if isAdmin();
+    }
+
+    match /user_blogs/{blogDocId} {
+      function isValidBlog(data) {
+        return data.keys().hasAll(['blogId', 'userId', 'createdAt']) &&
+               data.blogId is string &&
+               data.userId is string &&
+               (data.get('name', '') is string) &&
+               (data.get('url', '') is string);
+      }
+      
+      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidId(blogDocId) && isValidBlog(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'url', 'blogId', 'userId', 'createdAt', 'autoPublish', 'keywords', 'topic', 'language', 'tone', 'schedule', 'updatedAt']);
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /articles/{articleId} {
+      allow read, list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && isAdmin(); // Only admins can update directly for now
+      allow delete: if isSignedIn() && (isAdmin() || existing().userId == request.auth.uid);
+    }
+  }
+}
