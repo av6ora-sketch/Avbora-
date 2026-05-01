@@ -62,7 +62,7 @@ export default function AppLayout() {
           <div className="flex justify-between items-center mb-12">
             <Link to="/dashboard" className="flex items-center gap-2 text-2xl font-bold text-blue-500 tracking-tight">
               <Activity className="w-8 h-8 text-blue-400 animate-pulse" />
-              <span>Avbora Pulse</span>
+              <span>Avbora</span>
             </Link>
             <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-gray-400 hover:text-white">
               <X className="w-6 h-6" />
@@ -125,7 +125,7 @@ export default function AppLayout() {
              </button>
              <div className="flex items-center gap-2 text-xl font-bold text-blue-500 tracking-tight">
                <Activity className="w-6 h-6 text-blue-400" />
-               <span>Avbora Pulse</span>
+               <span>Avbora</span>
              </div>
            </div>
            <button onClick={handleLogout} className="text-gray-400">
