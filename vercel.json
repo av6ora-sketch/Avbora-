@@ -1,7 +1,8 @@
 {
+  "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|static/|favicon.ico|manifest.json).*)",
       "destination": "/index.html"
     }
   ]
