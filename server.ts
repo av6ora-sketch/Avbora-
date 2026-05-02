@@ -55,22 +55,24 @@ async function generateAndSaveArticles(biDailyOnly = false) {
       Language: ${blog.language || 'Arabic'}. 
       
       CRITICAL REQUIREMENTS:
-      1. Word Count: The article MUST be at least 1200 words long. Be very descriptive and go into deep detail.
-      2. Structure: 
-         - A catchy, SEO-optimized title.
-         - A compelling introduction.
-         - Multiple detailed sections with descriptive <h2> and <h3> subheadings.
-         - Use bullet points or numbered lists where appropriate for readability.
-         - A comprehensive conclusion with a final thought.
-      3. Backlink: You MUST include exactly one HTML hyperlink (<a href="${blog.url || '#'}">anchor text</a>) to the blog's homepage. The anchor text should be natural and contextually relevant.
-      4. SEO: Naturally integrate the keywords throughout the text, including in at least one subheading.
-      5. Output Format: Return ONLY a valid JSON object with "title" and "content" keys. The "content" value MUST be raw HTML. Do not include markdown code blocks.
-      
-      Target Audience: People interested in ${blog.topic || 'the blog topic'}.`;
+      1. Word Count & Depth (CRITICAL): The article MUST be extremely detailed and long-form, reaching a minimum of 1500 to 2000 words. You MUST delve deeply into every aspect, providing extensive background, step-by-step guides, and deep analysis. Do not summarize; expand heavily.
+      2. Hook & Intro: Start with a clear "Problem" and offer a "Solution".
+      3. Practical Examples: Incorporate real-world, practical examples.
+      4. Practical Tips Section: Include a specific section with an <h2> or <h3> heading dedicated to "Daily Practical Tips".
+      5. Backlinks (CRITICAL): You MUST include BOTH internal and external backlinks naturally within the text!
+         - Internal Link: You MUST include exactly one HTML hyperlink pointing to the blog's URL. Use this format: <a href="${blog.url || 'https://example.com'}">INSERT RELEVANT KEYWORD HERE</a>.
+         - External Links: Include at least 2 external links to relevant resources, examples, or famous references (e.g., if discussing a recipe, link to a famous recipe source or related tool; <a href="https://example.com" target="_blank" rel="noopener">Relevant Text</a>).
+      6. Visual Identity & Formatting: Use advanced semantic HTML (<h2>, <h3>, <h4>, <ul>, <li>, <strong>, <blockquote>). Ensure the layout is visually appealing. Break up long paragraphs to enhance readability.
+      7. Image Inclusion & Optimization:
+         - A Hero image is already added automatically. You MUST add EXACTLY ONE MORE inline image in the middle of the article using pollinations.ai. Format: <img src="https://image.pollinations.ai/prompt/YOUR_SECTION_TOPIC_HERE_in_english_realistic_photography?width=800&height=500&nologo=true" alt="Section Topic" style="width:100%; max-width: 800px; border-radius: 8px; margin: 20px auto; display: block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+      8. SEO Optimization: Distribute the provided keywords naturally throughout the text, including at least two in <h2> or <h3> headings. Use bold (<strong>) for important SEO keywords. Provide a strong closing statement.
+      9. Output Format: Return ONLY a valid JSON object with exactly two keys: "title" (string) and "content" (string containing the raw HTML). DO NOT wrap the output in markdown code blocks.
+
+      Target Audience: People interested in ${blog.topic || 'the blog topic'}. Make it highly valuable.`;
 
       try {
         const response = await ai.models.generateContent({
-          model: "gemini-1.5-flash",
+          model: "gemini-3.1-pro-preview",
           contents: prompt,
           config: {
             responseMimeType: "application/json"
@@ -80,10 +82,14 @@ async function generateAndSaveArticles(biDailyOnly = false) {
         const text = response.text;
         const { title, content } = JSON.parse(text);
 
+        const imagePrompt = `${blog.topic || 'technology'} realistic professional high quality photography`;
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1000&height=500&nologo=true`;
+
         // Save to articles collection
         await db.collection('articles').add({
           title,
           content,
+          imageUrl,
           blogId: blog.blogId,
           blogName: blog.name,
           userId: blog.userId,

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 
 export default function Login() {
@@ -17,7 +17,19 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCred = await signInWithEmailAndPassword(auth, email, password);
+      
+      try {
+        await addDoc(collection(db, 'logs'), {
+          userId: userCred.user.uid,
+          userEmail: userCred.user.email,
+          action: 'login',
+          timestamp: new Date().toISOString()
+        });
+      } catch (e) {
+        console.error("Failed to log login event", e);
+      }
+
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
@@ -32,6 +44,17 @@ export default function Login() {
       const provider = new GoogleAuthProvider();
       const { user } = await signInWithPopup(auth, provider);
       
+      try {
+        await addDoc(collection(db, 'logs'), {
+          userId: user.uid,
+          userEmail: user.email,
+          action: 'login',
+          timestamp: new Date().toISOString()
+        });
+      } catch (e) {
+        console.error("Failed to log login event", e);
+      }
+
       const userRef = doc(db, 'users', user.uid);
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) {

@@ -1,21 +1,39 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { auth } from '../firebase';
-import { Users, FileText, Settings, Ticket, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
+import { auth, db } from '../firebase';
+import { addDoc, collection } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
+import { Users, FileText, Settings, Ticket, LogOut, Menu, X, LayoutDashboard, Database, MessageSquare, Bell } from 'lucide-react';
 
 export default function AdminLayout() {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleLogout = async () => {
+    if (user) {
+      try {
+        await addDoc(collection(db, 'logs'), {
+          userId: user.uid,
+          userEmail: user.email,
+          action: 'logout',
+          timestamp: new Date().toISOString()
+        });
+      } catch (e) {
+        console.error("Failed to log logout event", e);
+      }
+    }
     await auth.signOut();
     navigate('/login');
   };
 
   const navItems = [
     { name: 'Users', path: '/admin/users', icon: Users },
+    { name: 'Logs', path: '/admin/logs', icon: Database },
     { name: 'Articles', path: '/admin/articles', icon: FileText },
+    { name: 'Posts', path: '/admin/posts', icon: MessageSquare },
+    { name: 'Notifications', path: '/admin/notifications', icon: Bell },
     { name: 'System Settings', path: '/admin/settings', icon: Settings },
     { name: 'Support', path: '/admin/support', icon: Ticket },
   ];

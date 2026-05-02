@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
+import { addDoc, collection } from 'firebase/firestore';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LogOut, Menu, X, Globe, Activity } from 'lucide-react';
 
@@ -15,6 +16,18 @@ export default function AppLayout() {
   const isAdmin = profile?.role === 'admin' || user?.email === 'contact@avbora.online' || user?.email === 'av6ora@gmail.com';
 
   const handleLogout = async () => {
+    if (user) {
+      try {
+        await addDoc(collection(db, 'logs'), {
+          userId: user.uid,
+          userEmail: user.email,
+          action: 'logout',
+          timestamp: new Date().toISOString()
+        });
+      } catch (e) {
+        console.error("Failed to log logout event", e);
+      }
+    }
     await auth.signOut();
     navigate('/login');
   };
@@ -25,6 +38,7 @@ export default function AppLayout() {
     media: isAR ? 'مكتبة الميديا' : 'Media Library',
     settings: isAR ? 'الإعدادات' : 'Settings',
     support: isAR ? 'الدعم الفني' : 'Support',
+    notifications: isAR ? 'الإشعارات' : 'Notifications',
     adminDashboard: isAR ? 'لوحة المسؤول' : 'Admin Dashboard',
     profileSettings: isAR ? 'الملف الشخصي' : 'Profile & Settings',
     logout: isAR ? 'تسجيل الخروج' : 'Logout',
@@ -37,6 +51,7 @@ export default function AppLayout() {
     { name: t.media, path: '/media' },
     { name: t.settings, path: '/blog-settings' },
     { name: t.support, path: '/support' },
+    { name: t.notifications, path: '/notifications' },
   ];
 
   return (

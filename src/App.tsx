@@ -27,6 +27,10 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminArticles from './pages/admin/AdminArticles';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminSupport from './pages/admin/AdminSupport';
+import AdminPosts from './pages/admin/AdminPosts';
+import AdminLogs from './pages/admin/AdminLogs';
+import AdminNotifications from './pages/admin/AdminNotifications';
+import Notifications from './pages/Notifications';
 
 export default function App() {
   return (
@@ -55,6 +59,9 @@ export default function App() {
           {/* Admin Routes */}
           <Route element={<ProtectedRoute requireProfile><AdminRoute><AdminLayout /></AdminRoute></ProtectedRoute>}>
             <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/logs" element={<AdminLogs />} />
+            <Route path="/admin/posts" element={<AdminPosts />} />
+            <Route path="/admin/notifications" element={<AdminNotifications />} />
             <Route path="/admin/articles" element={<AdminArticles />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/support" element={<AdminSupport />} />
@@ -68,6 +75,7 @@ export default function App() {
             <Route path="/media" element={<Media />} />
             <Route path="/support" element={<Support />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Routes>

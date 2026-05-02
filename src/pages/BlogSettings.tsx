@@ -214,8 +214,9 @@ export default function BlogSettings() {
     setIsUpdating(true);
     try {
       const docRef = doc(db, 'user_blogs', editingBlog.id);
+      const { id, ...updateData } = editingBlog;
       await setDoc(docRef, {
-        ...editingBlog,
+        ...updateData,
         updatedAt: serverTimestamp()
       }, { merge: true });
       
@@ -237,22 +238,44 @@ export default function BlogSettings() {
     try {
       // 1. Generate Content with Gemini
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const prompt = `Write a professional blog post for a blog titled "${blog.name}". 
+      const prompt = `Write an EXTENSIVE, high-quality, and professional blog post for a blog titled "${blog.name}". 
       Topic: ${blog.topic || 'General Technology'}. 
       Keywords: ${blog.keywords || 'none'}. 
       Tone: ${blog.tone || 'Professional'}. 
       Language: ${blog.language || 'Arabic'}. 
-      Format the output as JSON with "title" and "content" (HTML format for content) keys.`;
+      
+      CRITICAL REQUIREMENTS:
+      1. Word Count & Depth (CRITICAL): The article MUST be extremely detailed and long-form, reaching a minimum of 1500 to 2000 words. You MUST delve deeply into every aspect, providing extensive background, step-by-step guides, and deep analysis. Do not summarize; expand heavily.
+      2. Hook & Intro: Start with a clear "Problem" and offer a "Solution".
+      3. Practical Examples: Incorporate real-world, practical examples.
+      4. Practical Tips Section: Include a specific section with an <h2> or <h3> heading dedicated to "Daily Practical Tips".
+      5. Backlinks (CRITICAL): You MUST include BOTH internal and external backlinks naturally within the text!
+         - Internal Link: You MUST include exactly one HTML hyperlink pointing to the blog's URL. Use this format: <a href="${blog.url || 'https://example.com'}">INSERT RELEVANT KEYWORD HERE</a>.
+         - External Links: Include at least 2 external links to relevant resources, examples, or famous references (e.g., if discussing a recipe, link to a famous recipe source or related tool; <a href="https://example.com" target="_blank" rel="noopener">Relevant Text</a>).
+      6. Visual Identity & Formatting: Use advanced semantic HTML (<h2>, <h3>, <h4>, <ul>, <li>, <strong>, <blockquote>). Ensure the layout is visually appealing. Break up long paragraphs to enhance readability.
+      7. Image Inclusion & Optimization:
+         - A Hero image is already added automatically. You MUST add EXACTLY ONE MORE inline image in the middle of the article using pollinations.ai. Format: <img src="https://image.pollinations.ai/prompt/YOUR_SECTION_TOPIC_HERE_in_english_realistic_photography?width=800&height=500&nologo=true" alt="Section Topic" style="width:100%; max-width: 800px; border-radius: 8px; margin: 20px auto; display: block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+      8. SEO Optimization: Distribute the provided keywords naturally throughout the text, including at least two in <h2> or <h3> headings. Use bold (<strong>) for important SEO keywords. Provide a strong closing statement.
+      9. Output Format: Return ONLY a valid JSON object with exactly two keys: "title" (string) and "content" (string containing the raw HTML). DO NOT wrap the output in markdown code blocks.
+
+      Target Audience: People interested in ${blog.topic || 'the blog topic'}. Make it highly valuable.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-pro-preview",
         contents: prompt,
         config: {
           responseMimeType: "application/json"
         }
       });
 
-      const { title, content } = JSON.parse(response.text);
+      const parsedResponse = JSON.parse(response.text);
+      const title = parsedResponse.title;
+      const initialContent = parsedResponse.content;
+
+      const imagePrompt = `${blog.topic || 'technology'} realistic professional high quality photography`;
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1000&height=500&nologo=true`;
+      
+      const content = `<img src="${imageUrl}" alt="${title}" style="width:100%; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />\n\n${initialContent}`;
 
       // 2. Publish to Blogger
       // We need a fresh token. If we don't have one, we trigger auth.
@@ -289,6 +312,7 @@ export default function BlogSettings() {
       await setDoc(doc(collection(db, 'articles')), {
         title,
         content,
+        imageUrl,
         blogId: blog.blogId,
         blogName: blog.name,
         userId: user.uid,
@@ -300,11 +324,13 @@ export default function BlogSettings() {
       alert("AI Article generated and published successfully!");
       setLastGeneratedPost(publishedPost.url);
     } catch (e: any) {
-      if (e instanceof Error && e.message.includes('userId')) {
-         // This might be a firestore error thrown by handleFirestoreError elsewhere
-         console.error(e);
-      } else {
+      console.error(e);
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      // Only wrap in handleFirestoreError if it's actually a Firestore permission error
+      if (errorMessage.includes('Missing or insufficient permissions') || errorMessage.includes('PERMISSION_DENIED')) {
          handleFirestoreError(e, OperationType.WRITE, 'articles');
+      } else {
+         alert("Error generating/publishing: " + errorMessage);
       }
     } finally {
       setIsGenerating(false);

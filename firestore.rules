@@ -165,5 +165,19 @@ service cloud.firestore {
       allow update: if isSignedIn() && isAdmin(); // Only admins can update directly for now
       allow delete: if isSignedIn() && (isAdmin() || existing().userId == request.auth.uid);
     }
+
+    match /logs/{logId} {
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow read, list: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow create, update, delete: if isAdmin();
+      allow read, list: if isSignedIn() && (isAdmin() || resource.data.targetUserId == request.auth.uid || resource.data.targetUserId == 'all');
+    }
+
+    match /user_reads/{userId}/reads/{readId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
   }
 }
