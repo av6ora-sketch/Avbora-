@@ -13,7 +13,7 @@ export default function Pricing() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const paypalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || "test";
+  const paypalClientId = (import.meta.env.VITE_PAYPAL_CLIENT_ID || "test").replace(/\s+/g, '');
 
   const handlePaymentSuccess = async (details: any) => {
     if (!user) return;
