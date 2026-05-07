@@ -134,12 +134,12 @@ export default function Support() {
         </div>
 
         {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-950/30">
           {/* Initial Message */}
           <div className="flex justify-end">
-            <div className="bg-blue-600 text-white max-w-[80%] rounded-2xl rounded-tr-sm px-4 py-3">
-              <p className="whitespace-pre-wrap text-sm">{activeTicket.message}</p>
-              <span className="text-[10px] text-blue-200 block text-right mt-1">
+            <div className="bg-blue-900/40 border border-blue-800/50 text-blue-50 max-w-[80%] rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">{activeTicket.message}</p>
+              <span className="text-[10px] text-blue-300/70 block text-right mt-1.5 font-medium">
                 {new Date(activeTicket.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -150,9 +150,9 @@ export default function Support() {
             const replyText = typeof reply === 'string' ? reply : reply.message;
             return (
               <div key={`legacy-${idx}`} className="flex justify-start">
-                <div className="bg-gray-800 text-white max-w-[80%] rounded-2xl rounded-tl-sm px-4 py-3">
-                  <div className="text-xs text-emerald-400 font-bold mb-1">Support Team</div>
-                  <p className="whitespace-pre-wrap text-sm">{replyText}</p>
+                <div className="bg-gray-800/80 border border-gray-700/50 text-gray-200 max-w-[80%] rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                  <div className="text-[11px] text-emerald-400 font-bold mb-1 tracking-wide uppercase">Support Team</div>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{replyText}</p>
                 </div>
               </div>
             );
@@ -163,14 +163,14 @@ export default function Support() {
             const isUser = msg.senderRole === 'user';
             return (
               <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
                   isUser 
-                    ? 'bg-blue-600 text-white rounded-tr-sm' 
-                    : 'bg-gray-800 text-white rounded-tl-sm'
+                    ? 'bg-blue-900/40 border border-blue-800/50 text-blue-50 rounded-tr-sm' 
+                    : 'bg-gray-800/80 border border-gray-700/50 text-gray-200 rounded-tl-sm'
                 }`}>
-                  {!isUser && <div className="text-xs text-emerald-400 font-bold mb-1">Support Team</div>}
-                  <p className="whitespace-pre-wrap text-sm">{msg.text}</p>
-                  <span className={`text-[10px] block text-right mt-1 ${isUser ? 'text-blue-200' : 'text-gray-400'}`}>
+                  {!isUser && <div className="text-[11px] text-emerald-400 font-bold mb-1 tracking-wide uppercase">Support Team</div>}
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
+                  <span className={`text-[10px] block text-right mt-1.5 font-medium ${isUser ? 'text-blue-300/70' : 'text-gray-400'}`}>
                     {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
@@ -227,41 +227,41 @@ export default function Support() {
       </div>
 
       {showForm && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8 animate-in fade-in slide-in-from-top-4">
-          <h2 className="text-xl font-bold text-white mb-4">Start a Conversation</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 mb-8 animate-in fade-in slide-in-from-top-4 shadow-xl">
+          <h2 className="text-2xl font-bold text-white mb-6">Start a Conversation</h2>
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Subject</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Subject</label>
               <input
                 type="text"
                 required
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                className="w-full bg-gray-950/50 border border-gray-800 rounded-xl px-5 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="What do you need help with?"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Message</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Message</label>
               <textarea
                 required
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                rows={4}
-                className="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                rows={5}
+                className="w-full bg-gray-950/50 border border-gray-800 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-blue-500 transition-colors resize-none leading-relaxed"
                 placeholder="Describe your issue in detail..."
               />
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-2">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
+                className="px-8 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-blue-900/20"
               >
                 {isSubmitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <MessageSquare className="w-4 h-4" />
+                  <MessageSquare className="w-5 h-5" />
                 )}
                 Start Chat
               </button>

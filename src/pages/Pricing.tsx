@@ -1,4 +1,4 @@
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { useAuth } from '../contexts/AuthContext';
@@ -38,7 +38,14 @@ export default function Pricing() {
 
   return (
     <PayPalScriptProvider options={{ "client-id": paypalClientId, currency: "USD" }}>
-      <div className="min-h-screen bg-gray-950 text-gray-200 py-24 px-4 overflow-y-auto">
+      <div className="min-h-screen bg-gray-950 text-gray-200 py-24 px-4 overflow-y-auto relative">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="absolute top-6 right-6 md:top-8 md:right-8 p-2 bg-gray-900 border border-gray-800 hover:bg-gray-800 text-gray-400 hover:text-white rounded-full transition z-10 shadow-lg"
+          title="Go Back"
+        >
+          <X className="w-6 h-6" />
+        </button>
         <div className="max-w-7xl mx-auto text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">Simple, transparent pricing</h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">

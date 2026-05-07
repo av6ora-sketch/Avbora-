@@ -107,24 +107,40 @@ export default function Notifications() {
         </button>
       </div>
 
-      <div className="bg-gray-950 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-gray-900/50 border border-gray-800/80 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-sm">
         {loading ? (
-          <div className="p-8 text-center text-gray-400">{t.loading}</div>
+          <div className="p-12 text-center text-gray-400 flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+            {t.loading}
+          </div>
         ) : notifications.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">{t.empty}</div>
+          <div className="p-16 text-center text-gray-500 flex flex-col items-center">
+            <Bell className="w-12 h-12 mb-4 opacity-20" />
+            <p className="text-lg">{t.empty}</p>
+          </div>
         ) : (
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-gray-800/50">
             {notifications.map(n => (
               <div 
                 key={n.id} 
                 onClick={() => !n.read && handleMarkAsRead(n.id)}
-                className={`p-6 transition cursor-pointer ${n.read ? 'bg-gray-950/50' : 'bg-gray-900 border-l-4 border-blue-500 hover:bg-gray-800'}`}
+                className={`p-6 sm:p-8 transition-all duration-200 flex flex-col gap-3 ${
+                  n.read 
+                    ? 'bg-transparent hover:bg-gray-800/30' 
+                    : 'bg-blue-900/10 cursor-pointer hover:bg-blue-900/20 border-l-4 border-blue-500'
+                }`}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <div className={`font-bold ${n.read ? 'text-gray-400' : 'text-white'}`}>{n.title}</div>
-                  <div className="text-xs text-gray-500">{new Date(n.createdAt).toLocaleDateString()}</div>
+                <div className="flex justify-between items-start gap-4">
+                  <div className={`font-bold text-lg leading-tight ${n.read ? 'text-gray-400' : 'text-blue-100'}`}>
+                    {n.title}
+                  </div>
+                  <div className="shrink-0 text-xs text-gray-500 font-medium bg-gray-950 px-2.5 py-1 rounded-md border border-gray-800">
+                    {new Date(n.createdAt).toLocaleDateString()}
+                  </div>
                 </div>
-                <div className={`text-sm ${n.read ? 'text-gray-500' : 'text-gray-300'}`}>{n.message}</div>
+                <div className={`text-base leading-relaxed ${n.read ? 'text-gray-500' : 'text-gray-300'}`}>
+                  {n.message}
+                </div>
               </div>
             ))}
           </div>
